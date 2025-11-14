@@ -10,6 +10,7 @@ import {
   TableRow,
   TextField,
   Typography,
+  MenuItem,
 } from "@mui/material";
 import { useEffect, useState } from "react";
 import api from "../api/axiosConfig";
@@ -23,6 +24,8 @@ interface FileData {
   pathType: string;
   timestamp: string;
 }
+
+const dropdownOptions = ["logo", "model", "side", "other"];
 
 const FileUploadPage = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -38,20 +41,28 @@ const FileUploadPage = () => {
   const [hostedCategory, setHostedCategory] = useState("");
   const [hostedLoading, setHostedLoading] = useState(false);
 
+  // -------------------------------
+  // FETCH FILES FUNCTION (used everywhere)
+  // -------------------------------
+  const fetchFiles = async () => {
+    try {
+      const res = await api.get("/api/v1/file-details");
+      if (res.data.success) setUploadedFiles(res.data.data);
+    } catch (err) {
+      console.error("Failed to fetch files:", err);
+    }
+  };
+
   useEffect(() => {
-    const fetchFiles = async () => {
-      try {
-        const res = await api.get("/api/v1/file-details");
-        if (res.data.success) setUploadedFiles(res.data.data);
-      } catch (err) {
-        console.error("Failed to fetch files:", err);
-      }
-    };
-    fetchFiles();
+    fetchFiles(); // fetch initial table
   }, []);
 
+  // -------------------------------
+  // UPLOAD FILE
+  // -------------------------------
   const handleUpload = async () => {
-    if (!file || !folder || !category) return alert("Please fill all fields");
+    if (!file || !folder || !category)
+      return alert("Please fill all fields");
 
     const formData = new FormData();
     formData.append("file", file);
@@ -65,7 +76,7 @@ const FileUploadPage = () => {
       );
 
       if (res.data.success) {
-        setUploadedFiles((prev) => [res.data.data, ...prev]);
+        await fetchFiles(); // refresh table
         setFile(null);
         setFolder("");
         setCategory("");
@@ -77,6 +88,9 @@ const FileUploadPage = () => {
     }
   };
 
+  // -------------------------------
+  // ADD HOSTED FILE
+  // -------------------------------
   const handleAddHostedFile = async () => {
     if (!hostedFilename || !hostedMimetype || !hostedFilePath || !hostedCategory)
       return alert("Please fill all fields");
@@ -91,7 +105,7 @@ const FileUploadPage = () => {
       });
 
       if (res.data.success) {
-        setUploadedFiles((prev) => [res.data.data, ...prev]);
+        await fetchFiles(); // refresh table
         setHostedFilename("");
         setHostedMimetype("");
         setHostedFilePath("");
@@ -104,6 +118,9 @@ const FileUploadPage = () => {
     }
   };
 
+  // -------------------------------
+  // RENDER COMPONENT
+  // -------------------------------
   return (
     <Box>
       <Typography variant="h5" mb={2}>
@@ -120,20 +137,37 @@ const FileUploadPage = () => {
             alignItems: "center",
           }}
         >
+          {/* Folder Dropdown */}
           <TextField
+            select
             label="Folder"
             value={folder}
             onChange={(e) => setFolder(e.target.value)}
             sx={{ flex: "1 1 150px" }}
-          />
+          >
+            {dropdownOptions.map((opt) => (
+              <MenuItem key={opt} value={opt}>
+                {opt}
+              </MenuItem>
+            ))}
+          </TextField>
+
+          {/* Category Dropdown */}
           <TextField
+            select
             label="Category"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             sx={{ flex: "1 1 150px" }}
-          />
+          >
+            {dropdownOptions.map((opt) => (
+              <MenuItem key={opt} value={opt}>
+                {opt}
+              </MenuItem>
+            ))}
+          </TextField>
 
-          {/* Custom File Input */}
+          {/* File picker */}
           <Box
             onClick={() => document.getElementById("fileInput")?.click()}
             sx={{
@@ -185,24 +219,36 @@ const FileUploadPage = () => {
             onChange={(e) => setHostedFilename(e.target.value)}
             sx={{ flex: "1 1 150px" }}
           />
+
           <TextField
             label="MIME Type"
             value={hostedMimetype}
             onChange={(e) => setHostedMimetype(e.target.value)}
             sx={{ flex: "1 1 150px" }}
           />
+
           <TextField
             label="File URL"
             value={hostedFilePath}
             onChange={(e) => setHostedFilePath(e.target.value)}
             sx={{ flex: "2 1 250px" }}
           />
+
+          {/* Hosted Category Dropdown */}
           <TextField
+            select
             label="Category"
             value={hostedCategory}
             onChange={(e) => setHostedCategory(e.target.value)}
             sx={{ flex: "1 1 150px" }}
-          />
+          >
+            {dropdownOptions.map((opt) => (
+              <MenuItem key={opt} value={opt}>
+                {opt}
+              </MenuItem>
+            ))}
+          </TextField>
+
           <Button
             variant="contained"
             onClick={handleAddHostedFile}
@@ -239,11 +285,10 @@ const FileUploadPage = () => {
                   <TableCell>{f.filePath}</TableCell>
                   <TableCell>{f.category}</TableCell>
                   <TableCell>{f.pathType}</TableCell>
+                  <TableCell>{new Date(f.timestamp).toLocaleString()}</TableCell>
+
                   <TableCell>
-                    {new Date(f.timestamp).toLocaleString()}
-                  </TableCell>
-                  <TableCell>
-                    {f.mimetype.startsWith("image/") ? (
+                    {f.mimetype?.startsWith("image/") ? (
                       <img
                         src={f.filePath}
                         alt={f.filename}
@@ -259,6 +304,7 @@ const FileUploadPage = () => {
                       </a>
                     )}
                   </TableCell>
+
                 </TableRow>
               ))}
             </TableBody>

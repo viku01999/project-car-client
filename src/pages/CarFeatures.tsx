@@ -35,6 +35,7 @@ interface Feature {
     featureName: string;
     description: string;
     carSide?: string;
+    carSidesName?: string;
     timestamp: string;
 }
 
@@ -215,7 +216,7 @@ const CarFeatures = () => {
                                 <TableCell sx={{ fontWeight: "bold" }}>ID</TableCell>
                                 <TableCell sx={{ fontWeight: "bold" }}>Feature Name</TableCell>
                                 <TableCell sx={{ fontWeight: "bold" }}>Description</TableCell>
-                                <TableCell sx={{ fontWeight: "bold" }}>Car Side</TableCell>
+                                <TableCell sx={{ fontWeight: "bold" }}>Car Side Name</TableCell>
                                 <TableCell sx={{ fontWeight: "bold" }}>Timestamp</TableCell>
                                 <TableCell sx={{ fontWeight: "bold" }}>Action</TableCell>
                             </TableRow>
@@ -226,7 +227,7 @@ const CarFeatures = () => {
                                     <TableCell>{f._id}</TableCell>
                                     <TableCell>{f.featureName}</TableCell>
                                     <TableCell>{f.description}</TableCell>
-                                    <TableCell>{f.carSide || "N/A"}</TableCell>
+                                    <TableCell>{f.carSidesName || "N/A"}</TableCell>
                                     <TableCell>
                                         {f.timestamp
                                             ? new Date(f.timestamp).toLocaleString()

@@ -8,12 +8,10 @@ import {
     CircularProgress,
     Typography,
     Paper,
-    Table,
-    TableHead,
-    TableRow,
-    TableCell,
-    TableBody,
     Avatar,
+    Card,
+    CardMedia,
+    CardContent,
 } from "@mui/material";
 import type { SelectChangeEvent } from "@mui/material/Select";
 import api from "../api/axiosConfig";
@@ -43,10 +41,18 @@ interface CarService {
     tagType: string;
 }
 
+interface CarSide {
+    _id: string;
+    sideName: string;
+    fileUrl: string;
+    description: string;
+}
+
 const CarPreview: React.FC = () => {
     const [companies, setCompanies] = useState<CarCompany[]>([]);
     const [models, setModels] = useState<CarModel[]>([]);
     const [services, setServices] = useState<CarService[]>([]);
+    const [sides, setSides] = useState<CarSide[]>([]);
 
     const [selectedCompany, setSelectedCompany] = useState<string>("");
     const [selectedModel, setSelectedModel] = useState<string>("");
@@ -54,6 +60,7 @@ const CarPreview: React.FC = () => {
     const [loadingCompanies, setLoadingCompanies] = useState(true);
     const [loadingModels, setLoadingModels] = useState(false);
     const [loadingServices, setLoadingServices] = useState(false);
+    const [loadingSides, setLoadingSides] = useState(true);
 
     // Fetch all car companies
     useEffect(() => {
@@ -65,7 +72,7 @@ const CarPreview: React.FC = () => {
             .catch(() => setLoadingCompanies(false));
     }, []);
 
-    // Fetch models for the selected company
+    // Fetch models for selected company
     useEffect(() => {
         if (!selectedCompany) return;
         setLoadingModels(true);
@@ -77,7 +84,7 @@ const CarPreview: React.FC = () => {
             .catch(() => setLoadingModels(false));
     }, [selectedCompany]);
 
-    // Fetch services for the selected model
+    // Fetch services for selected model
     useEffect(() => {
         if (!selectedModel) return;
         setLoadingServices(true);
@@ -88,6 +95,24 @@ const CarPreview: React.FC = () => {
             })
             .catch(() => setLoadingServices(false));
     }, [selectedModel]);
+
+    // Fetch all sides
+    useEffect(() => {
+        api.get("/api/v1/car-sides")
+            .then((res) => {
+                setSides(res.data.data || []);
+                setLoadingSides(false);
+            })
+            .catch(() => setLoadingSides(false));
+    }, []);
+
+    // Helper: get side image by tagType
+    const getSideImage = (tagType: string) => {
+        const side = sides.find((s) => s.sideName.toLowerCase() === tagType.toLowerCase());
+        return side?.fileUrl || "";
+    };
+
+    const currentModel = models.find((m) => m._id === selectedModel);
 
     return (
         <Box sx={{ maxWidth: 900, mx: "auto", mt: 4, display: "flex", flexDirection: "column", gap: 4 }}>
@@ -145,43 +170,61 @@ const CarPreview: React.FC = () => {
                 </FormControl>
             )}
 
-            {/* Services Table */}
+            {/* Model preview */}
+            {currentModel && (
+                <Card sx={{ display: "flex", gap: 2, p: 2 }}>
+                    <CardMedia
+                        component="img"
+                        sx={{ width: 200 }}
+                        image={currentModel.modelPicture}
+                        alt={currentModel.modelName}
+                    />
+                    <CardContent>
+                        <Typography variant="h6">{currentModel.modelName}</Typography>
+                        <Typography color="gray">{currentModel.modelDescription}</Typography>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Services & Side Preview */}
             {selectedModel && (
                 <>
-                    <Typography variant="h6">Services</Typography>
-                    {loadingServices ? (
+                    <Typography variant="h6">Services & Side Preview</Typography>
+                    {loadingServices || loadingSides ? (
                         <CircularProgress />
                     ) : services.length === 0 ? (
                         <Typography>No services found for this model</Typography>
                     ) : (
-                        <Paper>
-                            <Table>
-                                <TableHead>
-                                    <TableRow>
-                                        <TableCell>Service Name</TableCell>
-                                        <TableCell>Features</TableCell>
-                                        <TableCell>Description</TableCell>
-                                        <TableCell>List Price</TableCell>
-                                        <TableCell>Offer Price</TableCell>
-                                        <TableCell>Duration</TableCell>
-                                        <TableCell>Tag Type</TableCell>
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    {services.map((service) => (
-                                        <TableRow key={service._id}>
-                                            <TableCell>{service.serviceName}</TableCell>
-                                            <TableCell>{service.serviceOffer.join(", ")}</TableCell>
-                                            <TableCell>{service.description}</TableCell>
-                                            <TableCell>{service.listPrice}</TableCell>
-                                            <TableCell>{service.offerPrice}</TableCell>
-                                            <TableCell>{service.duration}</TableCell>
-                                            <TableCell>{service.tagType}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </Paper>
+                        <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                            {services.map((service) => (
+                                <Paper sx={{ p: 2 }} key={service._id}>
+                                    <Typography variant="subtitle1">{service.serviceName}</Typography>
+                                    <Typography variant="body2" color="gray">
+                                        {service.description}
+                                    </Typography>
+                                    <Typography variant="body2">
+                                        Offers: {service.serviceOffer.join(", ")}
+                                    </Typography>
+                                    <Typography variant="body2">
+                                        Price: {service.listPrice} | Offer: {service.offerPrice}
+                                    </Typography>
+                                    <Typography variant="body2">Duration: {service.duration}</Typography>
+                                    <Typography variant="body2">Tag Type: {service.tagType}</Typography>
+
+                                    {/* Side Image */}
+                                    {getSideImage(service.tagType) && (
+                                        <Box sx={{ mt: 1 }}>
+                                            <Typography variant="caption">Side Preview:</Typography>
+                                            <img
+                                                src={getSideImage(service.tagType)}
+                                                alt={service.tagType}
+                                                style={{ width: "100%", marginTop: 4 }}
+                                            />
+                                        </Box>
+                                    )}
+                                </Paper>
+                            ))}
+                        </Box>
                     )}
                 </>
             )}

@@ -74,7 +74,7 @@ const CarModelManager = () => {
     const fetchModelPictures = async () => {
         setLoadingLogos(true);
         try {
-            const res = await api.get("/api/v1/file-details/by-category?category=logo");
+            const res = await api.get("/api/v1/file-details/by-category?category=model");
             if (res.data.success) setLogoFiles(res.data.data);
         } catch (err) {
             console.error("Failed to fetch logos:", err);
